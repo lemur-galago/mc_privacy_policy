@@ -297,32 +297,39 @@ onWebClientStarted() + {
 
 ```json
 {
-  "applicationSettings":{
-    "hideKeyboardOnLogin":false,
-    "hideLogo":false,
-    "instanceId":"b5f8552f-215a-49ac-8ba5-b6ef478e35b2",
-    "lockOrientation":false,
-    "loginOnEnter":false
+  "applicationSettings": {
+    "hideKeyboardOnLogin": false,
+    "hideLogo": false,
+    "instanceId": "901da373-6400-42fe-ac70-1f572fc4daf9",
+    "lockOrientation": false,
+    "loginOnEnter": false
   },
-  "build":{
-    "board":"goldfish_x86_64",
-    "brand":"google",
-    "device":"emu64xa",
-    "display":"BP22.250221.010",
-    "host":"r-456ae1c9fa6a8c5c-hhq4",
-    "id":"BP22.250221.010",
-    "manufacturer":"Google",
-    "model":"sdk_gphone64_x86_64",
-    "version":{
-      "release":"16",
-      "sdkInt":36,
-      "securityPatch":"2025-03-05"
+  "build": {
+    "board": "goldfish_x86_64",
+    "brand": "google",
+    "device": "emu64xa",
+    "display": "sdk_gphone64_x86_64-userdebug 16 BP22.250221.010 13193326 dev-keys",
+    "host": "r-456ae1c9fa6a8c5c-gd0k",
+    "id": "BP22.250221.010",
+    "manufacturer": "Google",
+    "model": "sdk_gphone64_x86_64",
+    "version": {
+      "release": "16",
+      "sdkInt": 36,
+      "securityPatch": "2025-03-05"
     }
   },
-  "config":{
-    "applicationId":"org.lsfusion.mobileclient",
-    "versionCode":32,
-    "versionName":"2.0.0010"
+  "config": {
+    "applicationId": "org.lsfusion.mobileclient",
+    "versionCode": 34,
+    "versionName": "2.0.0012"
+  },
+  "environment": {
+    "webView": {
+      "lastUpdateTime": 1744316380215,
+      "versionCode": 661308838,
+      "versionName": "128.0.6613.88"
+    }
   }
 }
 ```
