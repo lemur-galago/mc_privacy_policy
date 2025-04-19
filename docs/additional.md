@@ -118,9 +118,9 @@ onWebClientStarted() + {
 Файл _mdt.js_
 
 ```javascript
-function showMessage(text, title) {
+function showMessage(text) {
     if (typeof MobileDataTerminal === 'undefined') return
-    MobileDataTerminal.showMessage(text, title)
+    MobileDataTerminal.showMessage(text)
     return true;
 }
 ```
@@ -133,7 +133,31 @@ MODULE Main;
 REQUIRE SystemEvents;
 
 showMessage 'Показать сообщение' () {
-    INTERNAL CLIENT 'showMessage' PARAMS 'Hello world!', 'lsFusion';
+    INTERNAL CLIENT 'showMessage' PARAMS 'Hello world!';
+}
+
+FORM mdtDemo 'Demo'
+    PROPERTIES () showMessage
+;
+
+onWebClientStarted() + {
+    INTERNAL CLIENT 'mdt.js';
+    SHOW mdtDemo;
+}
+```
+
+Если во время вызова диалога на экране уже отображается другой диалог, его содержимое будет дополнено новым 
+сообщением.
+
+Модуль _Main.lsf_
+
+```Lsf
+MODULE Main;
+
+REQUIRE SystemEvents, Utils;
+
+showMessage 'Показать сообщение' () {
+    FOR count(INTEGER i, 9) DO INTERNAL CLIENT NOWAIT 'showMessage' PARAMS 'Message ' + i;
 }
 
 FORM mdtDemo 'Demo'
