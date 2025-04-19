@@ -111,6 +111,41 @@ onWebClientStarted() + {
 }
 ```
 
+## Message
+Начиная с версии 2.0.0014 Аналогично Tost через интерфейс `MobileDataTerminal` можно вызвать асинхронный диалог с одной 
+кнопкой 
+позитивной реакции.
+Файл _mdt.js_
+
+```javascript
+function showMessage(text, title) {
+    if (typeof MobileDataTerminal === 'undefined') return
+    MobileDataTerminal.showMessage(text, title)
+    return true;
+}
+```
+
+Модуль _Main.lsf_
+
+```Lsf
+MODULE Main;
+
+REQUIRE SystemEvents;
+
+showMessage 'Показать сообщение' () {
+    INTERNAL CLIENT 'showMessage' PARAMS 'Hello world!', 'lsFusion';
+}
+
+FORM mdtDemo 'Demo'
+    PROPERTIES () showMessage
+;
+
+onWebClientStarted() + {
+    INTERNAL CLIENT 'mdt.js';
+    SHOW mdtDemo;
+}
+```
+
 ## Снимок камерой Android-устройства
 
 Через интерфейс `MobileDataTerminal` на Android-устройстве можно открыть фрагмент "Камера", позволяющий сделать снимок,
