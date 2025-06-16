@@ -410,9 +410,9 @@ showToast(LONG tag, STRING text) {
         CONNECTION [GROUP MAX Connection c AS Connection BY LONG(c)](tag);
 }
 
-mobileApiResult(LONG tag, IMAGEFILE image) {
+mobileApiResult(LONG tag, JSONFILE json) {
     TRY {
-        WRITE image TO '/tmp/barcodes';
+        WRITE json TO '/tmp/barcodes';
         showToast(tag, 'Массив ШК успешно сохранен');
     } CATCH {
         showToast(tag, 'Ошибка сохранения массива ШК');
