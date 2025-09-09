@@ -191,11 +191,20 @@ onWebClientStarted() + {
 
 Если параметр `callback` опущен, то вместо обратного вызова js-функции приложение отправит запрос серверу приложений:
 
-`POST /exec/postImage?p=<tag>`
+`POST /exec/mobileApiResult?p=<tag>`
 
 где в параметре `p` адресной строки будет передан `tag` метода `MobileDataTerminal.captureImage`, а в теле запроса будет
 передан файл изображения. При этом в заголовке запроса будут переданы параметры Basic-авторизации с логином и паролем
 пользователя, авторизированного в приложении.
+
+> [!WARNING]
+> До версии 2.0.0015 серверу приложений отправляется запрос `POST /exec/postImage?p=<tag>`
+> 
+> В версии 2.0.0015 добавлена настройка "Использовать метод postImage". При включенной настройке для передачи 
+> данных серверу приложений будет отправляться старый запрос.
+> 
+> Данная настройка добавлена для временного сохранения обратной совместимости будет удалена в следующих версиях. 
+  
 
 Обращение к камере с callback можно использовать, например, в custom-представлении lsFusion.
 
@@ -258,7 +267,7 @@ onWebClientStarted() + {
 ```
 
 Обращение к камере без callback можно использовать, например, если изображение не требуется отображать на форме:
-Пример ниже сохраняет изображение на сервере приложений, не отображая его в интефейсе:
+Пример ниже сохраняет изображение на сервере приложений, не отображая его в интерфейсе:
 
 Файл _mdt.js_
 
@@ -281,8 +290,6 @@ MODULE Main;
 
 REQUIRE SystemEvents;
 
-image = DATA LOCAL IMAGEFILE ();
-
 captureImage 'Сделать снимок' () {
     LOCAL flag = BOOLEAN ();
     INTERNAL CLIENT 'captureImage' PARAMS currentConnection() TO flag;
@@ -290,7 +297,7 @@ captureImage 'Сделать снимок' () {
 }
 
 showToast(LONG tag, STRING text) {
-    NEWTHREAD INTERNAL CLIENT 'showToast' PARAMS 'Файл успешно сохранен';
+    NEWTHREAD INTERNAL CLIENT 'showToast' PARAMS text;
         CONNECTION [GROUP MAX Connection c AS Connection BY LONG(c)](tag);
 }
 
@@ -312,6 +319,112 @@ onWebClientStarted() + {
     SHOW mdtDemo;
 }
 ```
+
+## Сканирование штрихкодов камерой мобильного устройства
+
+Начиная с версии 2.0.0015 Через интерфейс `MobileDataTerminal` на Android-устройстве можно открыть фрагмент "Сканер 
+штрихкодов", позволяющий распознать и прочитать штрихкоды задней камерой мобильного устройства, после чего вызвать 
+эндпоинт сервера lsFusion и передать json-массив прочитанных штрихкодов.
+
+Для вызова фрагмента сканера штрихкодов используется метод:
+
+`MobileDataTerminal.readBarcode(<tag>)`
+
+В параметре `tag` передается значение, которое будет возвращено при обратном вызове вместе с результатом. В частности в
+параметр `tag` можно передавать значение, позволяющее определить, что возвращаемое в обратном вызове значение относится
+именно к этому вызову метода (это может быть идентификатор соединения, имя или уникальный идентификатор пользователя,
+генерируемое уникальное значение и т.д.)
+
+> [!NOTE]
+> В настоящее время поддерживаются следующие виды штрихкодов:
+> - Линейные форматы: Codabar, Code 39, Code 93, Code 128, EAN-8, EAN-13, ITF, UPC-A, UPC-E.
+> - 2D-форматы: Aztec, Data Matrix, PDF417, QR-код.
+
+> [!NOTE]
+> Обратите внимание, что приложение не распознает следующие штрихкоды:
+> - 1D штрих-коды, состоящие только из одного символа;
+> - Штрих-коды в формате ITF с количеством символов менее шести.
+
+Если хотя бы один штрихкод прочитан и успешно распознан, то приложение отправит запрос серверу приложений:
+
+`POST /exec/mobileApiResult?p=<tag>`
+
+где в параметре `p` адресной строки будет передан `tag` метода `MobileDataTerminal.readBarcode`, а в теле запроса будет
+передан json-файл, содержащий json-массив распознанных штрихкодов. При этом в заголовке запроса будут переданы 
+параметры Basic-авторизации с логином и паролем пользователя, авторизированного в приложении.
+
+> [!WARNING]
+> При включенной настройке "Использовать метод postImage" серверу приложений будет отправляться запрос
+> `POST /exec/mobileApiResult?p=<tag>` содержащий в теле json-массив распознанных штрихкодов.
+>
+> Данная настройка добавлена для временного сохранения обратной совместимости будет удалена в следующих версиях.
+
+
+Пример файла, содержащего массив штрихкодов:
+
+```json
+[
+  {
+    "format":32,
+    "rawValue":"6942103112508",
+    "valueType":5
+  }
+]
+```
+
+Пример ниже сохраняет массив отсканированных и распознанных штрихкодов в json-файл на сервере приложений:
+
+Файл _mdt.js_
+
+```javascript
+function showToast(text) {
+    MobileDataTerminal.showToast(text)
+}
+
+function readBarcode(tag) {
+    if (typeof MobileDataTerminal === 'undefined') return
+    MobileDataTerminal.readBarcode(tag)
+    return true
+}
+```
+
+Модуль _Main.lsf_
+
+```Lsf
+MODULE Main;
+
+REQUIRE SystemEvents;
+
+readBarcode 'Сканировать ШК' () {
+    LOCAL flag = BOOLEAN ();
+    INTERNAL CLIENT 'readBarcode' PARAMS currentConnection() TO flag;
+    IF NOT flag() THEN MESSAGE 'Это не мобильный клиент';
+}
+
+showToast(LONG tag, STRING text) {
+    NEWTHREAD INTERNAL CLIENT 'showToast' PARAMS text;
+        CONNECTION [GROUP MAX Connection c AS Connection BY LONG(c)](tag);
+}
+
+mobileApiResult(LONG tag, JSONFILE json) {
+    TRY {
+        WRITE json TO '/tmp/barcodes';
+        showToast(tag, 'Массив ШК успешно сохранен');
+    } CATCH {
+        showToast(tag, 'Ошибка сохранения массива ШК');
+    }
+}@@api;
+
+FORM mdtDemo 'Demo'
+    PROPERTIES readBarcode()
+;
+
+onWebClientStarted() + {
+    INTERNAL CLIENT 'mdt.js';
+    SHOW mdtDemo;
+}
+```
+
 
 ## Получение сведений об устройстве и приложении
 
