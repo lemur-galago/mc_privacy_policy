@@ -1,14 +1,29 @@
 # Мобильный клиент lsFusion
 
-## Дополнительный функционал клиента
+<!-- TOC -->
+* [Мобильный клиент lsFusion](#мобильный-клиент-lsfusion)
+  * [Дополнительный функционал клиента. Общие сведения](#дополнительный-функционал-клиента-общие-сведения)
+  * [Сообщения пользователю](#сообщения-пользователю)
+    * [Toast](#toast)
+    * [Message](#message)
+  * [Звуковые уведомления](#звуковые-уведомления)
+  * [Снимок камерой Android-устройства](#снимок-камерой-android-устройства)
+  * [Сканирование штрихкодов](#сканирование-штрихкодов)
+    * [Сканирование штрихкодов камерой мобильного устройства](#сканирование-штрихкодов-камерой-мобильного-устройства)
+    * [Сканирование штрихкодов broadcast-сканером](#сканирование-штрихкодов-broadcast-сканером)
+  * [Получение сведений об устройстве и приложении](#получение-сведений-об-устройстве-и-приложении)
+<!-- TOC -->
 
-Начиная с версии 2.0.0006 в тестовом режиме добавлена возможность использования дополнительного функционала клиента из
-кода lsFusion. В качестве теста добавлена возможности:
+## Дополнительный функционал клиента. Общие сведения
 
-- показ Toast-уведомленй на устройстве клиента
-- использование камеры устройства для одиночных снимков (даже при подключении к серверу по протоколу http)
+Начиная с версии 2.0.0006 добавлена возможность использования дополнительного функционала клиента из кода lsFusion.
 
-## Общие сведения
+> [!IMPORTANT]  
+> Все примеры ниже рассчитаны на работу с платформой версии 6.1 и выше. При использовании мобильного клиента с более 
+> старыми версиями платформы вместо реализации абстрактного действия `onWebClientInit[]` в реализацию абстрактного 
+> действия `onWebClientStarted[]` следует добавить строку:
+> 
+> `INTERNAL CLIENT 'mdt.js';`
 
 Для использования дополнительного функционала при открытии web-клиента lsFusion в приложении
 "Мобильный клиент lsFusion" добавляется js-интерфейс `MobileDataTerminal`, позволяющий web-клиенту взаимодействовать с
@@ -23,10 +38,10 @@ function checkMobileDataTerminal() {
 }
 ```
 
-Модуль _Main.lsf_
+Модуль _Check.lsf_
 
 ```Lsf
-MODULE Main;
+MODULE Check;
 
 REQUIRE SystemEvents;
 
@@ -43,13 +58,18 @@ FORM mdtDemo 'Demo'
     PROPERTIES mdtCheck()
 ;
 
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
 onWebClientStarted() + {
-    INTERNAL CLIENT 'mdt.js';
     SHOW mdtDemo;
 }
 ```
 
-## Toast
+## Сообщения пользователю
+
+### Toast
 
 Через интерфейс `MobileDataTerminal` можно вызвать стандартный Android-Toast с сообщением:
 
@@ -63,10 +83,10 @@ function showToast(text) {
 }
 ```
 
-Модуль _Main.lsf_
+Модуль _Toast.lsf_
 
 ```Lsf
-MODULE Main;
+MODULE Toast;
 
 REQUIRE SystemEvents;
 
@@ -80,8 +100,11 @@ FORM mdtDemo 'Demo'
     PROPERTIES showToast()
 ;
 
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
 onWebClientStarted() + {
-    INTERNAL CLIENT 'mdt.js';
     SHOW mdtDemo;
 }
 ```
@@ -90,31 +113,35 @@ onWebClientStarted() + {
 подключенных с помощью приложения:
 
 ```Lsf
-MODULE Main;
+MODULE ToastEverybody;
 
 REQUIRE SystemEvents;
 
-showToastForAll 'Показать Toast всем' () {
+showToastForEverybody 'Показать Toast всем' () {
     FOR connectionStatus(Connection c) = ConnectionStatus.connectedConnection AND NOT c = currentConnection() DO
         NEWTHREAD
-            INTERNAL CLIENT 'showToast' PARAMS 'Hello world!!!';
+            INTERNAL CLIENT 'showToast' PARAMS 'Toast for everybody!!!';
             CONNECTION c;
 }
 
 FORM mdtDemo 'Demo'
-    PROPERTIES showToastForAll()
+    PROPERTIES showToastForEverybody()
 ;
 
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
 onWebClientStarted() + {
-    INTERNAL CLIENT 'mdt.js';
     SHOW mdtDemo;
 }
 ```
 
-## Message
-Начиная с версии 2.0.0014 Аналогично Tost через интерфейс `MobileDataTerminal` можно вызвать асинхронный диалог с одной 
-кнопкой 
-позитивной реакции.
+### Message
+
+Начиная с версии 2.0.0014, аналогично Toast, через интерфейс `MobileDataTerminal` можно вызвать асинхронный диалог с 
+одной кнопкой позитивной реакции.
+
 Файл _mdt.js_
 
 ```javascript
@@ -125,10 +152,10 @@ function showMessage(text) {
 }
 ```
 
-Модуль _Main.lsf_
+Модуль _Message.lsf_
 
 ```Lsf
-MODULE Main;
+MODULE Message;
 
 REQUIRE SystemEvents;
 
@@ -136,12 +163,23 @@ showMessage 'Показать сообщение' () {
     INTERNAL CLIENT 'showMessage' PARAMS 'Hello world!';
 }
 
+showMessageForEverybody 'Показать сообщение всем' () {
+    FOR connectionStatus(Connection c) = ConnectionStatus.connectedConnection AND NOT c = currentConnection() DO
+        NEWTHREAD
+            INTERNAL CLIENT 'showMessage' PARAMS 'Hello ${userLogin(c)}';
+            CONNECTION c;
+}
+
+
 FORM mdtDemo 'Demo'
-    PROPERTIES () showMessage
+    PROPERTIES () showMessage, showMessageForEverybody
 ;
 
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
 onWebClientStarted() + {
-    INTERNAL CLIENT 'mdt.js';
     SHOW mdtDemo;
 }
 ```
@@ -149,24 +187,119 @@ onWebClientStarted() + {
 Если во время вызова диалога на экране уже отображается другой диалог, его содержимое будет дополнено новым 
 сообщением.
 
-Модуль _Main.lsf_
+Модуль _MultiMessage.lsf_
 
 ```Lsf
-MODULE Main;
+MODULE MultiMessage;
 
 REQUIRE SystemEvents, Utils;
 
 showMessage 'Показать сообщение' () {
-    FOR count(INTEGER i, 9) DO INTERNAL CLIENT NOWAIT 'showMessage' PARAMS 'Message ' + i;
+    FOR count(INTEGER i, 9) DO INTERNAL CLIENT NOWAIT 'showMessage' PARAMS 'Message ${i}';
 }
 
 FORM mdtDemo 'Demo'
     PROPERTIES () showMessage
 ;
 
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
 onWebClientStarted() + {
-    INTERNAL CLIENT 'mdt.js';
     SHOW mdtDemo;
+}
+```
+
+## Звуковые уведомления
+
+Начиная с версии 2.0.0018 добавлена возможность через интерфейс `MobileDataTerminal` воспроизведения стандартных 
+звуков Android: уведомление, будильник и звонок.
+
+Для воспроизведения используются соответствующие методы:
+
+`MobileDataTerminal.playNotify()`
+
+`MobileDataTerminal.playAlarm()`
+
+`MobileDataTerminal.playRingtone()`
+
+Остановить воспроизведение можно методом:
+
+`MobileDataTerminal.stopRingtone()`
+
+Пример:
+
+Файл _mdt.js_
+
+```javascript
+function playNotify() {
+    if (typeof MobileDataTerminal === 'undefined') return
+    MobileDataTerminal.playNotify()
+    return true
+}
+
+function playAlarm() {
+    if (typeof MobileDataTerminal === 'undefined') return
+    MobileDataTerminal.playAlarm()
+    return true
+}
+
+function playRingtone() {
+    if (typeof MobileDataTerminal === 'undefined') return
+    MobileDataTerminal.playRingtone()
+    return true
+}
+
+function stopRingtone() {
+    if (typeof MobileDataTerminal === 'undefined') return
+    MobileDataTerminal.stopRingtone()
+    return true
+}
+```
+
+Модуль _Ringtone.lsf_
+
+```Lsf
+MODULE Ringtone;
+
+REQUIRE SystemEvents;
+
+notify 'Уведомление' () {
+    LOCAL flag = BOOLEAN();
+    INTERNAL CLIENT 'playNotify' TO flag;
+    IF NOT flag() THEN MESSAGE 'Это не мобильный клиент';
+}
+
+alarm 'Будильник' () {
+    LOCAL flag = BOOLEAN();
+    INTERNAL CLIENT 'playAlarm' TO flag;
+    IF NOT flag() THEN MESSAGE 'Это не мобильный клиент';
+}
+
+ringtone 'Звонок' () {
+    LOCAL flag = BOOLEAN();
+    INTERNAL CLIENT 'playRingtone' TO flag;
+    IF NOT flag() THEN MESSAGE 'Это не мобильный клиент';
+}
+
+stop 'Остановить' () {
+    LOCAL flag = BOOLEAN();
+    INTERNAL CLIENT 'stopRingtone' TO flag;
+    IF NOT flag() THEN MESSAGE 'Это не мобильный клиент';
+}
+
+
+FORM mdtDemo 'Demo'
+    PROPERTIES () notify, alarm, ringtone, stop
+;
+
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
+onWebClientStarted() + {
+    SHOW mdtDemo DOCKED;
 }
 ```
 
@@ -185,8 +318,8 @@ onWebClientStarted() + {
 генерируемое уникальное значение и т.д.)
 
 В параметре `callback` можно указать имя callback-функции js, которая будет вызвана после того, как пользователь в
-приложении сделал снимок камерой. Функция должна принимать на вход два обязательных параметра `tag` и `encodedImage`. В
-при вызове callback-функции параметре `tag` будет передаваться значение, которое было передано в параметре `tag`
+приложении сделал снимок камерой. Функция должна принимать на вход два обязательных параметра `tag` и `encodedImage`.
+При вызове callback-функции параметре `tag` будет передаваться значение, которое было передано в параметре `tag` 
 метода `MobileDataTerminal.captureImage`, а в параметре `encodedImage` - base64-строка с jpeg-изображением.
 
 Если параметр `callback` опущен, то вместо обратного вызова js-функции приложение отправит запрос серверу приложений:
@@ -195,12 +328,12 @@ onWebClientStarted() + {
 
 где в параметре `p` адресной строки будет передан `tag` метода `MobileDataTerminal.captureImage`, а в теле запроса будет
 передан файл изображения. При этом в заголовке запроса будут переданы параметры Basic-авторизации с логином и паролем
-пользователя, авторизированного в приложении.
+пользователя, авторизованного в приложении.
 
 > [!WARNING]
 > До версии 2.0.0015 серверу приложений отправляется запрос `POST /exec/postImage?p=<tag>`
 > 
-> В версии 2.0.0015 добавлена настройка "Использовать метод postImage". При включенной настройке для передачи 
+> В версии 2.0.0015 добавлена настройка "Использовать метод postImage". При включённой настройке для передачи 
 > данных серверу приложений будет отправляться старый запрос.
 > 
 > Данная настройка добавлена для временного сохранения обратной совместимости будет удалена в следующих версиях. 
@@ -211,7 +344,7 @@ onWebClientStarted() + {
 Файл _mdt.js_
 
 ```javascript
-function captureCameraImage() {
+function customCameraImage() {
     return {
         render: element => {
             if (typeof MobileDataTerminal === 'undefined') return
@@ -220,7 +353,7 @@ function captureCameraImage() {
             button.addEventListener(
                 'click',
                 (_) =>
-                    MobileDataTerminal.captureImage(element.id, 'captureCameraImage().callback')
+                    MobileDataTerminal.captureImage(element.id, 'customCameraImage().callback')
             )
             button.innerHTML = 'captureImage'
             element.append(button)
@@ -228,27 +361,27 @@ function captureCameraImage() {
         update: (element, controller, value) => {
             element.controller = controller
         },
-        callback: (id, image) => {
-            const element = document.getElementById(id)
+        callback: (tag, encodedImage) => {
+            const element = document.getElementById(tag)
             if (element) {
-                element.controller.changeValue(image)
+                element.controller.changeValue(encodedImage)
             }
         }
     }
 }
 ```
 
-Модуль _Main.lsf_
+Модуль _CustomCameraImage.lsf_
 
 ```Lsf
-MODULE Main;
+MODULE CustomCameraImage;
 
 REQUIRE SystemEvents, Utils;
 
 image = DATA LOCAL IMAGEFILE ();
 
 FORM mdtDemo 'Demo'
-    PROPERTIES image '' = image() READONLY, button '' = image() CUSTOM 'captureCameraImage'
+    PROPERTIES image '' = image() READONLY, button '' = image() CUSTOM 'customCameraImage'
     ON CHANGE {
         INPUT image = TEXT DO {
             IF image THEN image() <- decode(image, 'base64');
@@ -256,12 +389,11 @@ FORM mdtDemo 'Demo'
     }
 ;
 
-DESIGN mdtDemo {
-    PROPERTY (image) { size = (240, 320); }
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
 }
 
 onWebClientStarted() + {
-    INTERNAL CLIENT WAIT 'mdt.js';
     SHOW mdtDemo;
 }
 ```
@@ -272,11 +404,7 @@ onWebClientStarted() + {
 Файл _mdt.js_
 
 ```javascript
-function showToast(text) {
-    MobileDataTerminal.showToast(text)
-}
-
-function captureImage(tag) {
+function apiCameraImage(tag) {
     if (typeof MobileDataTerminal === 'undefined') return
     MobileDataTerminal.captureImage(tag)
     return true
@@ -286,27 +414,24 @@ function captureImage(tag) {
 Модуль _Main.lsf_
 
 ```Lsf
-MODULE Main;
+MODULE ApiCameraImage;
 
 REQUIRE SystemEvents;
 
 captureImage 'Сделать снимок' () {
     LOCAL flag = BOOLEAN ();
-    INTERNAL CLIENT 'captureImage' PARAMS currentConnection() TO flag;
+    INTERNAL CLIENT 'apiCameraImage' PARAMS currentConnection() TO flag;
     IF NOT flag() THEN MESSAGE 'Это не мобильный клиент';
 }
 
-showToast(LONG tag, STRING text) {
-    NEWTHREAD INTERNAL CLIENT 'showToast' PARAMS text;
-        CONNECTION [GROUP MAX Connection c AS Connection BY LONG(c)](tag);
-}
-
-postImage(LONG tag, IMAGEFILE image) {
+mobileApiResult(LONG tag, FILE file) {
+    LOCAL connection = Connection();
+    connection() <- [GROUP MAX Connection c AS Connection BY LONG(c)](tag);
     TRY {
-        WRITE image TO '/tmp/image';
-        showToast(tag, 'Изображение успешно сохранено');
+        WRITE file TO '/tmp/file';
+        NEWTHREAD MESSAGE 'Файл успешно сохранён'; CONNECTION connection();
     } CATCH {
-        showToast(tag, 'Ошибка сохранения изображения');
+        NEWTHREAD MESSAGE 'Ошибка сохранения файла'; CONNECTION connection();
     }
 }@@api;
 
@@ -314,26 +439,22 @@ FORM mdtDemo 'Demo'
     PROPERTIES captureImage()
 ;
 
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
 onWebClientStarted() + {
-    INTERNAL CLIENT 'mdt.js';
     SHOW mdtDemo;
 }
 ```
 
-## Сканирование штрихкодов камерой мобильного устройства
+## Сканирование штрихкодов
+
+### Сканирование штрихкодов камерой мобильного устройства
 
 Начиная с версии 2.0.0015 Через интерфейс `MobileDataTerminal` на Android-устройстве можно открыть фрагмент "Сканер 
 штрихкодов", позволяющий распознать и прочитать штрихкоды задней камерой мобильного устройства, после чего вызвать 
 эндпоинт сервера lsFusion и передать json-массив прочитанных штрихкодов.
-
-Для вызова фрагмента сканера штрихкодов используется метод:
-
-`MobileDataTerminal.readBarcode(<tag>)`
-
-В параметре `tag` передается значение, которое будет возвращено при обратном вызове вместе с результатом. В частности в
-параметр `tag` можно передавать значение, позволяющее определить, что возвращаемое в обратном вызове значение относится
-именно к этому вызову метода (это может быть идентификатор соединения, имя или уникальный идентификатор пользователя,
-генерируемое уникальное значение и т.д.)
 
 > [!NOTE]
 > В настоящее время поддерживаются следующие виды штрихкодов:
@@ -345,17 +466,33 @@ onWebClientStarted() + {
 > - 1D штрих-коды, состоящие только из одного символа;
 > - Штрих-коды в формате ITF с количеством символов менее шести.
 
-Если хотя бы один штрихкод прочитан и успешно распознан, то приложение отправит запрос серверу приложений:
+Для вызова фрагмента сканера штрихкодов используется метод:
+
+`MobileDataTerminal.readBarcode(<tag>[, <callback>])`
+
+В параметре `tag` передается значение, которое будет возвращено при обратном вызове вместе с результатом. В частности в
+параметр `tag` можно передавать значение, позволяющее определить, что возвращаемое в обратном вызове значение относится
+именно к этому вызову метода (это может быть идентификатор соединения, имя или уникальный идентификатор пользователя,
+генерируемое уникальное значение и т.д.)
+
+Начиная с версии 2.0.0018 в параметре `callback` можно указать имя callback-функции js, которая будет вызвана после 
+того, как в приложении был успешно распознан хотя бы один штрихкод. Функция должна принимать на вход два 
+обязательных параметра `tag` и `barcode`. При вызове callback-функции в параметре `tag` будет передаваться значение, 
+которое было передано в параметре `tag` метода `MobileDataTerminal.readBarcode`, а в параметре `barcode` - строка, 
+содержащая распознанный штрихкод.
+
+Если параметр `callback` опущен, то, если хотя бы один штрихкод прочитан и успешно распознан, то вместо обратного 
+вызова js-функции приложение отправит запрос серверу приложений:
 
 `POST /exec/mobileApiResult?p=<tag>`
 
 где в параметре `p` адресной строки будет передан `tag` метода `MobileDataTerminal.readBarcode`, а в теле запроса будет
-передан json-файл, содержащий json-массив распознанных штрихкодов. При этом в заголовке запроса будут переданы 
-параметры Basic-авторизации с логином и паролем пользователя, авторизированного в приложении.
+передан json-файл, содержащий массив распознанных штрихкодов. При этом в заголовке запроса будут переданы параметры 
+Basic-авторизации с логином и паролем пользователя, авторизованного в приложении.
 
 > [!WARNING]
-> При включенной настройке "Использовать метод postImage" серверу приложений будет отправляться запрос
-> `POST /exec/mobileApiResult?p=<tag>` содержащий в теле json-массив распознанных штрихкодов.
+> При включённой настройке "Использовать метод postImage" серверу приложений будет отправляться запрос
+> `POST /exec/postImage?p=<tag>` содержащий в теле json-массив распознанных штрихкодов.
 >
 > Данная настройка добавлена для временного сохранения обратной совместимости будет удалена в следующих версиях.
 
@@ -372,46 +509,141 @@ onWebClientStarted() + {
 ]
 ```
 
-Пример ниже сохраняет массив отсканированных и распознанных штрихкодов в json-файл на сервере приложений:
+Поле `format` элемента массива, содержащего штрихкод - целое число, определяющее формат распознанного штрихкода:
+
+| Возвращаемое<br/>значение |           Формат штрихкода           |
+|:-------------------------:|:------------------------------------:|
+|             1             |               Code 128               |
+|             2             |               Code 39                |
+|             4             |               Code 93                |
+|             8             |               Codabar                |
+|            16             |             Data Matrix              |
+|            32             |                EAN-13                |
+|            64             |                EAN-8                 |
+|            128            |                 ITF                  |
+|            256            |                QR-код                |
+|            512            |                UPC-A                 |
+|           1024            |                UPC-E                 |
+|           2048            |                PDF417                |
+|           4096            |                Aztec                 |
+|             0             | Другой формат, не перечисленный выше |
+
+Поле `rawValue` содержит строковое представление распознанного штрихкода.
+
+Поле `valueType` содержит тип информации, закодированной штрихкодом:
+
+| Возвращаемое<br/>значение | Тип информации                        |
+|:-------------------------:|:--------------------------------------|
+|             1             | Контактная информация                 |
+|             2             | Адрес email                           |
+|             3             | Код ISBN                              |
+|             4             | Номер телефона                        |
+|             5             | Код товара                            |
+|             6             | SMS-сообщение                         |
+|             7             | Произвольный текст                    |
+|             8             | URL                                   |
+|             9             | Данные для подключения к WiFi         |
+|            10             | Геопозиция                            |
+|            11             | Событие календаря                     |
+|            12             | Сведения о водительском удостоверении |
+|             0             | Неизвестный тип информации            |
+
+
+Чтение штрихкода камерой устройства с callback можно использовать, например, в custom-представлении lsFusion:
 
 Файл _mdt.js_
 
 ```javascript
-function showToast(text) {
-    MobileDataTerminal.showToast(text)
+function customReadBarcode() {
+    return {
+        render: element => {
+            if (typeof MobileDataTerminal === 'undefined') return
+            element.id = Date.now().toString()
+            const input = document.createElement('input')
+            const button = document.createElement('button')
+            button.addEventListener(
+                'click',
+                (_) =>
+                    MobileDataTerminal.readBarcode(element.id, 'customReadBarcode().callback')
+            )
+            button.innerHTML = 'readBarcode'
+            element.append(input)
+            element.append(button)
+            element.input = input
+        },
+        update: (element, controller, value) => {
+            element.controller = controller
+            element.input.value = value
+        },
+        callback: (tag, barcode) => {
+            const element = document.getElementById(tag)
+            if (element) {
+                element.controller.changeValue(barcode)
+            }
+        }
+    }
+}
+```
+
+Файл _CustomReadBarcode.lsf_
+
+```Lsf
+MODULE CustomReadBarcode;
+
+REQUIRE SystemEvents;
+
+barcode = DATA LOCAL STRING();
+
+FORM mdtDemo 'Demo'
+    PROPERTIES barcode() CUSTOM 'customReadBarcode'
+;
+
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
 }
 
-function readBarcode(tag) {
+onWebClientStarted() + {
+    SHOW mdtDemo;
+}
+
+```
+
+Чтение штрихкода камерой без callback можно использовать, например, если, например, штрихкод не требуется отображать 
+на форме или необходимо получить дополнительные сведения о штрихкоде (формат штрихкода и тип информации).
+Пример ниже сохраняет на сервере приложений json-файл, содержащий массив распознанных штрихкодов с дополнительными 
+сведениями о них, не отображая его в интерфейсе:
+
+Файл _mdt.js_
+
+```javascript
+function apiReadBarcode(tag) {
     if (typeof MobileDataTerminal === 'undefined') return
     MobileDataTerminal.readBarcode(tag)
     return true
 }
 ```
 
-Модуль _Main.lsf_
+Модуль _ApiReadBarcode.lsf_
 
 ```Lsf
-MODULE Main;
+MODULE ApiReadBarcode;
 
 REQUIRE SystemEvents;
 
-readBarcode 'Сканировать ШК' () {
+readBarcode 'Получить штрихкод' () {
     LOCAL flag = BOOLEAN ();
-    INTERNAL CLIENT 'readBarcode' PARAMS currentConnection() TO flag;
+    INTERNAL CLIENT 'apiReadBarcode' PARAMS currentConnection() TO flag;
     IF NOT flag() THEN MESSAGE 'Это не мобильный клиент';
 }
 
-showToast(LONG tag, STRING text) {
-    NEWTHREAD INTERNAL CLIENT 'showToast' PARAMS text;
-        CONNECTION [GROUP MAX Connection c AS Connection BY LONG(c)](tag);
-}
-
-mobileApiResult(LONG tag, JSONFILE json) {
+mobileApiResult(LONG tag, FILE file) {
+    LOCAL connection = Connection();
+    connection() <- [GROUP MAX Connection c AS Connection BY LONG(c)](tag);
     TRY {
-        WRITE json TO '/tmp/barcodes';
-        showToast(tag, 'Массив ШК успешно сохранен');
+        WRITE file TO '/tmp/file';
+        NEWTHREAD MESSAGE 'Файл успешно сохранён'; CONNECTION connection();
     } CATCH {
-        showToast(tag, 'Ошибка сохранения массива ШК');
+        NEWTHREAD MESSAGE 'Ошибка сохранения файла'; CONNECTION connection();
     }
 }@@api;
 
@@ -419,17 +651,200 @@ FORM mdtDemo 'Demo'
     PROPERTIES readBarcode()
 ;
 
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
 onWebClientStarted() + {
-    INTERNAL CLIENT 'mdt.js';
     SHOW mdtDemo;
 }
 ```
 
+### Сканирование штрихкодов broadcast-сканером
+
+Начиная с версии 2.0.0018 через интерфейс `MobileDataTerminal` можно подписаться на широковещательное сообщение 
+(broadcast), передаваемое сканером штрихкодов при успешном сканировании. Работу в broadcast-режиме поддерживает 
+большинство моделей терминалов сбора данных, а также некоторые модели внешних сканеров штрихкодов.    
+
+> [!NOTE]
+> Для корректной работы в режиме broadcast у сканера мобильного устройства должен быть включен соответствующий режим 
+> и в настройках сканера и приложения должны быть заданы совпадающие имя Intent и имя ресурса, содержащего 
+> отсканированный штрихкод.  
+
+Для подписки на широковещательное сообщение сканирования штрихкода используется метод:
+
+`MobileDataTerminal.waitBarcode(<tag>[, <callback>])`
+
+В параметре tag передается значение, которое будет возвращено при обратном вызове вместе с результатом. В частности в
+параметр tag можно передавать значение, позволяющее определить, что возвращаемое в обратном вызове значение относится
+именно к этому вызову метода (это может быть идентификатор соединения, имя или уникальный идентификатор пользователя,
+генерируемое уникальное значение и т.д.)
+
+В параметре `callback` можно указать имя callback-функции js, которая будет вызвана после того, как сканер передал 
+широковещательное сообщение о прочитанном штрихкоде. Функция должна принимать на вход два обязательных параметра 
+`tag` и `barcode`. При вызове callback-функции в параметре `tag` будет передаваться значение, которое было передано в 
+параметре `tag` метода `MobileDataTerminal.waitBarcode`, а в параметре `barcode` - строка с прочитанным штрихкодом.
+
+Если параметр `callback` опущен, то вместо обратного вызова js-функции приложение отправит запрос серверу приложений:
+
+`POST /exec/mobileApiResult?p=<tag>`
+
+где в параметре `p` адресной строки будет передан `tag` метода `MobileDataTerminal.waitBarcode`, а в теле запроса будет
+передан json-файл, содержащий массив, состоящий из единственного элемента, содержащего прочитанный штрихкод. При этом в 
+заголовке запроса будут переданы параметры Basic-авторизации с логином и паролем пользователя, авторизованного в 
+приложении.
+
+> [!WARNING]
+> При включённой настройке "Использовать метод postImage" серверу приложений будет отправляться запрос
+> `POST /exec/postImage?p=<tag>` содержащий в теле json-массив, состоящий из единственного элемента, содержащего 
+> прочитанный штрихкод.
+>
+> Данная настройка добавлена для временного сохранения обратной совместимости будет удалена в следующих версиях.
+
+Пример файла, передаваемого в теле запроса:
+
+```json
+[
+  {
+    "format": 0,
+    "rawValue":"6942103112508",
+    "valueType": 0
+  }
+]
+```
+Поле `rawValue` содержит строковое представление прочитанного штрихкода, а поля `format` и `valueType` всегда равны 
+нулю.
+
+Одномоментно может быть активна только одна подписка. Повторный вызов метода перед новой подпиской отменяет 
+предыдущую. Для отмены подписки, на период, когда сканирование штрихкода не ожидается, используется метод:
+
+`MobileDataTerminal.stopWaitingBarcode()`
+
+Подписка на широковещательное сообщение отменяется автоматически после получения штрихкода от сканера.
+
+Получение штрихкода от broadcast-сканера с callback можно использовать, например, в custom-представлении lsFusion:
+
+Файл _mdt.js_
+
+```javascript
+function customWaitBarcode() {
+    return {
+        render: element => {
+            element.id = Date.now().toString()
+            const input = document.createElement('input')
+            element.append(input)
+            element.input = input
+        },
+        update: (element, controller, value) => {
+            element.controller = controller
+            element.input.value = value
+            if (typeof MobileDataTerminal === 'undefined') return
+            MobileDataTerminal.waitBarcode(element.id, 'customWaitBarcode().callback')
+        },
+        clear: (element) => {
+            if (typeof MobileDataTerminal === 'undefined') return
+            MobileDataTerminal.stopWaitingBarcode()
+        },
+        callback: (tag, barcode) => {
+            const element = document.getElementById(tag)
+            if (element) {
+                element.controller.changeValue(barcode)
+                MobileDataTerminal.waitBarcode(element.id, 'customWaitBarcode().callback')
+            }
+        }
+    }
+}
+```
+
+Модуль _CustomWaitBarcode.lsf_
+
+```Lsf
+MODULE CustomWaitBarcode;
+
+REQUIRE SystemEvents;
+
+barcode = DATA LOCAL STRING();
+
+FORM mdtDemo 'Demo'
+    PROPERTIES barcode() CUSTOM 'customWaitBarcode'
+;
+
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
+onWebClientStarted() + {
+    SHOW mdtDemo;
+}
+```
+
+Получение штрихкода от broadcast-сканера без callback можно использовать, например, если, например, штрихкод не 
+требуется отображать на форме.
+Пример ниже сохраняет на сервере приложений json-файл, содержащий массив распознанных штрихкодов с дополнительными
+сведениями о них, не отображая его в интерфейсе:
+
+Файл _mdt.js_
+
+```javascript
+function stopWaitingBarcode() {
+    if (typeof MobileDataTerminal === 'undefined') return
+    MobileDataTerminal.stopWaitingBarcode()
+    return true
+}
+
+function apiWaitBarcode(tag) {
+    if (typeof MobileDataTerminal === 'undefined') return
+    MobileDataTerminal.waitBarcode(tag)
+    return true
+}
+```
+
+Модуль _ApiWaitBarcode.lsf_
+
+```Lsf
+MODULE ApiWaitBarcode;
+
+REQUIRE SystemEvents;
+
+mobileApiResult(LONG tag, FILE file) {
+    LOCAL connection = Connection();
+    connection() <- [GROUP MAX Connection c AS Connection BY LONG(c)](tag);
+    TRY {
+        WRITE file TO '/tmp/file';
+        NEWTHREAD {
+            MESSAGE 'Файл успешно сохранён';
+            INTERNAL CLIENT 'apiWaitBarcode' PARAMS currentConnection();
+        }  CONNECTION connection();
+    } CATCH {
+        NEWTHREAD MESSAGE 'Ошибка сохранения файла'; CONNECTION connection();
+    }
+}@@api;
+
+FORM mdtDemo 'Demo'
+    EVENTS
+        ON INIT {
+            LOCAL flag = BOOLEAN ();
+            INTERNAL CLIENT 'apiWaitBarcode' PARAMS currentConnection() TO flag;
+            IF NOT flag() THEN MESSAGE 'Это не мобильный клиент';
+        },
+        ON CLOSE {
+            INTERNAL CLIENT 'stopWaitingBarcode';
+        }
+;
+
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
+onWebClientStarted() + {
+    SHOW mdtDemo;
+}
+```
 
 ## Получение сведений об устройстве и приложении
 
-Начиная 2.0.0010 через интерфейс `MobileDataTerminal` можно получить сведения об устройстве, на котором запущен 
-мобильный клиент и о настройках самого мобильного клиента.
+Начиная с версии 2.0.0010 через интерфейс `MobileDataTerminal` можно получить сведения об устройстве, на котором 
+запущен мобильный клиент и о настройках самого мобильного клиента.
 
 Файл _mdt.js_
 
@@ -440,10 +855,10 @@ function getAppInfo(text) {
 }
 ```
 
-Модуль _Main.lsf_
+Модуль _AppInfo.lsf_
 
 ```Lsf
-MODULE Main;
+MODULE AppInfo;
 
 REQUIRE SystemEvents;
 
@@ -452,15 +867,23 @@ appInfo 'Информация приложения' = DATA LOCAL JSON ();
 getInfo 'Получить инфо' () {
     INTERNAL CLIENT 'getAppInfo' PARAMS currentConnection() TO appInfo;
     IF NOT appInfo() THEN MESSAGE 'Это не мобильный клиент';
-}
+} TOOLBAR;
 
 FORM mdtDemo 'Demo'
     PROPERTIES () appInfo, getInfo
 ;
 
+DESIGN mdtDemo {
+    GROUP() { fill = 1; }
+    PROPERTY (appInfo()) { fill = 1; captionVertical = TRUE; }
+}
+
+onWebClientInit() + {
+    onWebClientInit('mdt.js') <- 10;
+}
+
 onWebClientStarted() + {
-    INTERNAL CLIENT 'mdt.js';
-    SHOW mdtDemo;
+    SHOW mdtDemo DOCKED;
 }
 ```
 
@@ -470,42 +893,49 @@ onWebClientStarted() + {
 ```json
 {
   "applicationSettings": {
-    "hideKeyboardOnLogin": false,
-    "hideLogo": false,
-    "instanceId": "901da373-6400-42fe-ac70-1f572fc4daf9",
+    "barcodeScanner": {
+      "broadcast": false,
+      "intent": "org.lsfusion.mobileclient.scanner.broadcast",
+      "resource": "data"
+    },
+    "instanceId": "001a36bd-1f61-467b-bcbb-949a6712cc28",
     "lockOrientation": false,
-    "loginOnEnter": false
+    "login": {
+      "hideKeyboardOnLogin": false,
+      "hideLogo": false,
+      "loginOnEnter": false
+    }
   },
   "build": {
     "board": "goldfish_x86_64",
     "brand": "google",
-    "device": "emu64xa",
-    "display": "sdk_gphone64_x86_64-userdebug 16 BP22.250221.010 13193326 dev-keys",
-    "host": "r-456ae1c9fa6a8c5c-gd0k",
-    "id": "BP22.250221.010",
+    "device": "emu64xa16k",
+    "display": "CP21.260306.017.A1 dev-keys",
+    "host": "970e3cfe68aa",
+    "id": "CP21.260306.017.A1",
     "manufacturer": "Google",
-    "model": "sdk_gphone64_x86_64",
+    "model": "sdk_gphone16k_x86_64",
     "version": {
-      "release": "16",
-      "sdkInt": 36,
-      "securityPatch": "2025-03-05"
+      "release": "17",
+      "sdkInt": 37,
+      "securityPatch": "2026-03-05"
     }
   },
   "config": {
     "applicationId": "org.lsfusion.mobileclient",
-    "versionCode": 34,
-    "versionName": "2.0.0012"
+    "versionCode": 40,
+    "versionName": "2.0.0018"
   },
   "environment": {
     "webView": {
-      "lastUpdateTime": 1744316380215,
-      "versionCode": 661308838,
-      "versionName": "128.0.6613.88"
+      "lastUpdateTime": 1774982604197,
+      "versionCode": 763204538,
+      "versionName": "145.0.7632.45"
     }
   }
 }
 ```
 
 Следует отметить, что в `applicationSettings.instanceId` возвращается uuid, который генерируется при первом запуске 
-приложения, и хранится во внутренней памяти устройства. При полном удалении данных приложения uuid будет 
-сгенерирован снова.
+приложения и хранится во внутренней памяти устройства. При полном удалении данных приложения uuid будет сгенерирован 
+снова.
