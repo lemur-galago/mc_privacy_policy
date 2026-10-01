@@ -385,8 +385,8 @@ image = DATA LOCAL IMAGEFILE ();
 FORM mdtDemo 'Demo'
     PROPERTIES image '' = image() READONLY, button '' = image() CUSTOM 'customCameraImage'
     ON CHANGE {
-        INPUT image = TEXT DO {
-            IF image THEN image() <- decode(image, 'base64');
+        INPUT encoded = TEXT DO {
+            IF encoded THEN image() <- decode(encoded, 'base64');
         }
     }
 ;
@@ -561,9 +561,11 @@ JS-функции приложение отправит запрос серве�
 function customReadBarcode() {
     return {
         render: element => {
-            if (typeof MobileDataTerminal === 'undefined') return
             element.id = Date.now().toString()
             const input = document.createElement('input')
+            element.append(input)
+            element.input = input
+            if (typeof MobileDataTerminal === 'undefined') return
             const button = document.createElement('button')
             button.addEventListener(
                 'click',
@@ -571,9 +573,7 @@ function customReadBarcode() {
                     MobileDataTerminal.readBarcode(element.id, 'customReadBarcode().callback')
             )
             button.innerHTML = 'readBarcode'
-            element.append(input)
             element.append(button)
-            element.input = input
         },
         update: (element, controller, value) => {
             element.controller = controller
@@ -853,7 +853,7 @@ onWebClientStarted() + {
 Файл _mdt.js_
 
 ```javascript
-function getAppInfo(text) {
+function getAppInfo() {
     if (typeof MobileDataTerminal === 'undefined') return
     return JSON.parse(MobileDataTerminal.getAppInfo())
 }
@@ -869,7 +869,7 @@ REQUIRE SystemEvents;
 appInfo 'Сведения о приложении' = DATA LOCAL JSON ();
 
 getInfo 'Получить сведения' () {
-    INTERNAL CLIENT 'getAppInfo' PARAMS currentConnection() TO appInfo;
+    INTERNAL CLIENT 'getAppInfo' TO appInfo;
     IF NOT appInfo() THEN MESSAGE 'Это не мобильный клиент';
 } TOOLBAR;
 
